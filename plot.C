@@ -36,15 +36,20 @@ void plot() {
     string user;
     int timestamp;
     int ticks;
+    int temp;
 
     getline( coffeestream, rl ); // read one line  = event into string
     istringstream listentry(rl); // tokenize string
 
-    // Limit to Thomas' ticks:
+    // Limit to someone's ticks:
     listentry >> user;
     //if(user != "{4CF8B02A-DD0F-4B19-BC92-C3D9B23CCAB0}") continue; // Thomas
     if(user != "{225E0443-FCEF-4400-8D69-B1535A07B9DA}") continue; // Simon
-    
+
+    listentry >> temp; // year
+    listentry >> temp; // month
+    listentry >> temp; // day
+
     listentry >> timestamp;
     listentry >> ticks;
 
@@ -52,23 +57,27 @@ void plot() {
   }
   std::sort(coffee.begin(), coffee.end(), pairCompare);
 
-  vector <double> cffee;
+  vector <double> cfrate;
   vector <double> time;
   vector <double> accum_coffee;
 
   int start_time_of_phd = coffee.front().first;
-  
+
   for(int i = 0; i < coffee.size(); i++) {
     time.push_back((coffee.at(i).first - start_time_of_phd)/3600/24);
-    cffee.push_back(coffee.at(i).second*10);
-    if(i == 0) accum_coffee.push_back(coffee.at(i).second);
-    else accum_coffee.push_back(accum_coffee.back()+coffee.at(i).second);
+    if(i == 0) {
+      accum_coffee.push_back(coffee.at(i).second);
+      cfrate.push_back(0);
+    } else {
+      accum_coffee.push_back(accum_coffee.back()+coffee.at(i).second);
+      cfrate.push_back(coffee.at(i).second/((coffee.at(i).first-coffee.at(i-1).first)/3600.0/24.0)*100.0);
+    }
   }
-  
+
   cout << "Found " << accum_coffee.back() << " coffees for this user." << endl;
 
   TCanvas *c1 = new TCanvas("c1","coffee",1800,600);
-  TGraph *cff = new TGraph(cffee.size(),&(time[0]),&(cffee[0]));
+  TGraph *cff = new TGraph(cfrate.size(),&(time[0]),&(cfrate[0]));
   TGraph *allcff = new TGraph(accum_coffee.size(),&(time[0]),&(accum_coffee[0]));
 
   allcff->SetLineColor(2);
@@ -78,28 +87,25 @@ void plot() {
   allcff->SetLineWidth(-1503);
   allcff->SetFillStyle(3005);
   allcff->SetFillColor(2);
-  allcff->SetTitle("");
+  allcff->SetTitle("Caffeine Intoxication");
   allcff->Draw("APL");
+  allcff->GetYaxis()->SetTitle("Coffee Consumption [cups]");
+  allcff->GetXaxis()->SetTitle("PhD Duration [d]");
 
-  allcff->GetYaxis()->SetTitle("consume [coffee]");
-  allcff->GetXaxis()->SetTitle("PhD [hours]");
-  
   cff->SetLineColor(kGray+1);
   cff->SetLineWidth(-802);
   cff->SetFillStyle(3004);
   cff->SetFillColor(kGray+1);
   cff->Draw("PL");
 
-
-  allcff->Draw("PL");
-  
   c1->SetLogy();
   c1->SetTicky();
   c1->SetTickx();
+  c1->SetTitle("Caffeine Intoxication");
 
   TLegend * leg = new TLegend(0.55,0.15,0.85,0.35);
   leg->AddEntry(allcff,"Accumulated Cups");
-  leg->AddEntry(cff,"Cups per unit time #times 10");
+  leg->AddEntry(cff,"Daily Dosage #times 100");
   leg->SetLineColor(0);
   leg->Draw();
 }
